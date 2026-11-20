@@ -210,4 +210,200 @@ async function enhanceVoiceLocal() {
     var bassFilter = offCtx.createBiquadFilter();
     bassFilter.type = 'lowshelf';
     bassFilter.frequency.value = 180;
-    bassFilter.g
+    bassFilter.gain.value = bassDb;
+
+    // 3. เพิ่มความคมชัดของคำพูดภาษาไทย (Clarity)
+    var clarityFilter = offCtx.createBiquadFilter();
+    clarityFilter.type = 'peaking';
+    clarityFilter.frequency.value = 3200;
+    clarityFilter.Q.value = 1.0;
+    clarityFilter.gain.value = clarityDb;
+
+    // 4. ปรับความดังให้สม่ำเสมอ (Compressor)
+    var comp = offCtx.createDynamicsCompressor();
+    comp.threshold.value = -20;
+    comp.knee.value = 15;
+    comp.ratio.value = 4;
+    comp.attack.value = 0.005;
+    comp.release.value = 0.20;
+
+    src.connect(highpass);
+    highpass.connect(bassFilter);
+    bassFilter.connect(clarityFilter);
+    clarityFilter.connect(comp);
+    comp.connect(offCtx.destination);
+
+    src.start(0);
+    var rendered = await offCtx.startRendering();
+    var chData = rendered.getChannelData(0);
+
+    // Normalize ระดับเสียงให้ดังฟังชัด
+    var peak = 0;
+    for (var i = 0; i < chData.length; i++) {
+      var abs = Math.abs(chData[i]);
+      if (abs > peak) peak = abs;
+    }
+    if (peak > 0.01) {
+      var scale = 0.92 / peak;
+      for (var j = 0; j < chData.length; j++) {
+        chData[j] = chData[j] * scale;
+      }
+    }
+
+    var finalWav = encodeWAV(chData, rendered.sampleRate);
+    addClip('🎙️ เสียงสตูดิโอ #' + (clips.length + 1), finalWav);
+
+    document.getElementById('ai-out').innerHTML =
+      '<div style="padding:12px;background:#dcfce7;border:2px solid #22c55e;border-radius:8px;margin-top:10px;">' +
+      '<b>🎉 ปรับแต่งเสียงพากย์เสร็จสมบูรณ์! (เร็วทันใจ ไม่ต้องรอคิว)</b>' +
+      '<audio controls autoplay src="' + URL.createObjectURL(finalWav) + '" style="width:100%;margin:8px 0;"></audio>' +
+      '<button onclick="tab(3)" style="width:100%;padding:12px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-weight:bold;">➡️ นำเสียงนี้ไปรวมใส่คลิปวิดีโอเลย (แท็บ 3)</button></div>';
+    st.innerText = '✅ ประมวลผลในเครื่องเสร็จเรียบร้อย!';
+  } catch (err) {
+    st.innerText = '⚠️ เกิดข้อผิดพลาด: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function upVid(el) {
+  var f = el.files && el.files[0];
+  if (!f) return;
+  hasVid = true;
+  var v = document.getElementById('v');
+  v.src = URL.createObjectURL(f);
+  v.load();
+  alert('✅ โหลดคลิปวิดีโอเรียบร้อย!');
+}
+
+async function merge() {
+  var id = document.getElementById('sel').value;
+  var c = clips.find(function(x) { return x.id === id; });
+  if (!c) return alert('กรุณาอัดเสียงในแท็บที่ 1 ก่อนครับ!');
+  document.getElementById('mmsg').innerText = '⏳ กำลังรวมเสียงใส่คลิปวิดีโอ รอสักครู่...';
+  try {
+    var cv = document.getElementById('cv'), ctx = cv.getContext('2d'), v = document.getElementById('v');
+    var ac = new (window.AudioContext || window.webkitAudioContext)();
+    var dest = ac.createMediaStreamDestination();
+    var buf = await ac.decodeAudioData(await c.blob.arrayBuffer());
+    var src = ac.createBufferSource();
+    src.buffer = buf; src.connect(dest); src.connect(ac.destination);
+    if (hasVid) { cv.width = v.videoWidth || 720; cv.height = v.videoHeight || 1280; }
+    var cs = cv.captureStream(30);
+    var ms = new MediaStream([].concat(cs.getVideoTracks(), dest.stream.getAudioTracks()));
+    var mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
+    var vr = new MediaRecorder(ms, { mimeType: mime }), vc = [];
+    vr.ondataavailable = function(e) { if (e.data && e.data.size > 0) vc.push(e.data); };
+    vr.onstop = function() {
+      var u = URL.createObjectURL(new Blob(vc, { type: mime }));
+      var ext = mime.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+      document.getElementById('out').innerHTML = '<video controls playsinline src="' + u + '" style="width:100%;border-radius:8px;margin-top:8px;"></video>' +
+        '<a href="' + u + '" download="my_video.' + ext + '" style="display:block;background:#16a34a;color:#fff;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">⬇️ ดาวน์โหลดคลิปวิดีโอลงมือถือ</a>';
+      document.getElementById('mmsg').innerText = '✅ รวมคลิปเสร็จสมบูรณ์!';
+    };
+    vr.start(100); src.start(0);
+    var dur = buf.duration || 5, st = performance.now();
+    if (hasVid) { v.currentTime = 0; v.muted = true; await v.play().catch(function(){}); }
+    (function loop(now) {
+      var el = (now - st) / 1000;
+      if (hasVid) ctx.drawImage(v, 0, 0, cv.width, cv.height);
+      else {
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('🎬 คลิป 9:16 (' + el.toFixed(1) + 's)', cv.width / 2, cv.height / 2);
+      }
+      if (el < dur) requestAnimationFrame(loop);
+      else { if (hasVid) v.pause(); try { src.stop(); } catch(e){} vr.stop(); }
+    })(performance.now());
+  } catch (e) { alert('ผิดพลาด: ' + e.message); }
+}
+</script>
+</head>
+<body style="margin:0;font-family:sans-serif;background:#f1f5f9;padding:12px;">
+  <div style="max-width:560px;margin:0 auto;">
+    <div style="background:#2563eb;color:#fff;padding:14px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <b>🎙️ สตูดิโอพากย์เสียงส่วนตัว (V6)</b>
+      <span style="background:#16a34a;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:bold;">⚡ ไม่ต้องรอคิว 100%</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;">
+      <button id="b1" onclick="tab(1)" style="padding:10px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;">1. อัดเสียงพากย์</button>
+      <button id="b2" onclick="tab(2)" style="padding:10px;border:none;border-radius:8px;background:#e2e8f0;color:#0f172a;font-weight:bold;">2. แต่งเสียงหล่อ</button>
+      <button id="b3" onclick="tab(3)" style="padding:10px;border:none;border-radius:8px;background:#e2e8f0;color:#0f172a;font-weight:bold;">3. รวมใส่คลิป</button>
+    </div>
+
+    <!-- แท็บ 1 -->
+    <div id="p1" style="background:#fff;padding:14px;border-radius:12px;">
+      <b>พิมพ์หรือวางบทพากย์ของคุณ (อ่านตามกล่องสีดำด้านล่าง):</b>
+      <textarea id="script-in" oninput="syncPrompt()" style="width:100%;height:75px;margin:6px 0;padding:8px;border-radius:8px;border:1px solid #cbd5e1;font-size:15px;">รู้หรือไม่ครับว่า แมวไทยโบราณเป็นสัตว์มงคลที่มีความฉลาดและซื่อสัตย์ต่อเจ้าของอย่างมาก</textarea>
+
+      <div id="prompt-box" style="background:#0f172a;color:#38bdf8;padding:14px;border-radius:8px;margin:6px 0 12px;font-size:18px;font-weight:bold;line-height:1.6;">
+        รู้หรือไม่ครับว่า แมวไทยโบราณเป็นสัตว์มงคลที่มีความฉลาดและซื่อสัตย์ต่อเจ้าของอย่างมาก
+      </div>
+
+      <div style="background:#f8fafc;border:2px dashed #94a3b8;padding:12px;border-radius:10px;text-align:center;margin-bottom:12px;">
+        <div id="msg" style="font-weight:bold;margin-bottom:6px;color:#0f172a;">แตะปุ่มสีน้ำเงินเพื่อเริ่มพากย์เสียง</div>
+        <div id="tm" style="font-size:22px;font-weight:bold;color:#dc2626;margin-bottom:10px;">0.0 / 60.0 วินาที</div>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-start" onclick="recStart()" style="flex:1;padding:14px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;font-size:15px;">🎙️ เริ่มอัดเสียง</button>
+          <button id="btn-stop" onclick="recStop()" disabled style="flex:1;padding:14px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-weight:bold;font-size:15px;opacity:0.4;">⏹️ หยุดและเซฟ</button>
+        </div>
+      </div>
+
+      <div id="list" style="margin-bottom:12px;"></div>
+
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:12px;border-radius:10px;">
+        <b>💡 หรือเลือกไฟล์เสียงที่มีในเครื่อง:</b>
+        <input type="file" accept="audio/*" onchange="upAud(this)" style="width:100%;margin-top:8px;">
+      </div>
+    </div>
+
+    <!-- แท็บ 2: ปรับแต่งเสียงสตูดิโอในเครื่อง ไม่ต้องรอคิว -->
+    <div id="p2" style="display:none;background:#fff;padding:14px;border-radius:12px;">
+      <b>1. เลือกไฟล์เสียงของคุณที่จะนำมาปรับแต่ง:</b>
+      <select id="ref-sel" style="width:100%;padding:10px;margin:6px 0 12px;border-radius:8px;"><option value="">-- อัดเสียงในแท็บที่ 1 ก่อนครับ --</option></select>
+
+      <b>2. เลือกโทนเสียงพากย์สำเร็จรูป (แตะเลือกได้เลย):</b>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 14px;">
+        <button onclick="setPreset(5, 4, 1.0)" style="padding:10px 4px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;font-weight:bold;font-size:12px;">🎙️ นักพากย์ทุ้มนุ่ม</button>
+        <button onclick="setPreset(2, 6, 1.05)" style="padding:10px 4px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;font-weight:bold;font-size:12px;">✨ เสียงใสกระชับ</button>
+        <button onclick="setPreset(6, 2, 0.95)" style="padding:10px 4px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;font-weight:bold;font-size:12px;">🎬 เล่าเรื่องขลังๆ</button>
+      </div>
+
+      <div style="background:#f8fafc;padding:12px;border-radius:8px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:bold;">
+          <span>ความทุ้มนุ่ม (Bass):</span><span id="lbl-bass">5 dB</span>
+        </div>
+        <input id="eq-bass" type="range" min="-6" max="10" step="1" value="5" oninput="updateLabels()" style="width:100%;margin-bottom:8px;">
+
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:bold;">
+          <span>ความใสคมชัด (Clarity):</span><span id="lbl-clarity">4 dB</span>
+        </div>
+        <input id="eq-clarity" type="range" min="-4" max="10" step="1" value="4" oninput="updateLabels()" style="width:100%;margin-bottom:8px;">
+
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:bold;">
+          <span>ความเร็วการพูด (Speed):</span><span id="lbl-speed">1.00x</span>
+        </div>
+        <input id="eq-speed" type="range" min="0.80" max="1.25" step="0.05" value="1.00" oninput="updateLabels()" style="width:100%;">
+      </div>
+
+      <button id="btn-ai" onclick="enhanceVoiceLocal()" style="width:100%;padding:14px;border:none;border-radius:8px;background:#7c3aed;color:#fff;font-weight:bold;font-size:15px;">⚡ ปรับแต่งเสียงพากย์ทันที (เสร็จใน 1 วินาที)</button>
+      <div id="ai-msg" style="margin-top:10px;font-weight:bold;color:#16a34a;font-size:13px;"></div>
+      <div id="ai-out"></div>
+    </div>
+
+    <!-- แท็บ 3 -->
+    <div id="p3" style="display:none;background:#fff;padding:14px;border-radius:12px;">
+      <b>1. เลือกคลิปวิดีโอ (9:16):</b>
+      <input type="file" accept="video/*" onchange="upVid(this)" style="width:100%;margin:6px 0 12px;">
+      <b>2. เลือกเสียงพากย์ของคุณ:</b>
+      <select id="sel" style="width:100%;padding:10px;margin:6px 0 12px;border-radius:8px;"><option value="">-- ยังไม่มีไฟล์เสียง --</option></select>
+      <button onclick="merge()" style="width:100%;padding:12px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-weight:bold;">🎬 รวมเสียงใส่คลิป & ดาวน์โหลด</button>
+      <div id="mmsg" style="margin-top:8px;font-weight:bold;color:#2563eb;"></div>
+      <canvas id="cv" width="720" height="1280" style="width:100%;max-height:260px;background:#000;border-radius:8px;margin-top:10px;object-fit:contain;"></canvas>
+      <video id="v" playsinline crossorigin="anonymous" style="display:none;"></video>
+      <div id="out"></div>
+    </div>
+  </div>
+</body>
+</html>
