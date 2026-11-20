@@ -1,213 +1,90 @@
 <!doctype html>
-<html lang="th">
+<html lang="th" translate="no">
 <head>
   <meta charset="utf-8">
+  <meta name="google" content="notranslate">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>สตูดิโอพากย์เสียง & รวมคลิปส่วนตัว</title>
+  <title>สตูดิโอพากย์เสียงส่วนตัว</title>
   <meta name="theme-color" content="#2563eb">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="สตูดิโอพากย์">
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif;
-      background: #f1f5f9;
-      color: #0f172a;
-      padding-bottom: 40px;
-    }
-    .header {
-      background: #2563eb;
-      color: #fff;
-      padding: 14px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: sans-serif; background: #f1f5f9; color: #0f172a; padding-bottom: 40px; }
+    .header { background: #2563eb; color: #fff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
     .header h1 { margin: 0; font-size: 16px; }
-    .install-btn {
-      background: #16a34a;
-      color: #fff;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 99px;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    .install-btn { background: #16a34a; color: #fff; border: none; padding: 8px 12px; border-radius: 99px; font-size: 12px; font-weight: bold; cursor: pointer; }
     .container { max-width: 600px; margin: 0 auto; padding: 12px; }
-    .tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      background: #fff;
-      padding: 6px;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    }
-    .tab-btn {
-      border: none;
-      background: transparent;
-      padding: 10px 4px;
-      font-size: 13px;
-      font-weight: bold;
-      color: #64748b;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+    .ready-bar { background: #dcfce7; color: #166534; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: bold; margin-bottom: 12px; border: 1px solid #86efac; text-align: center; }
+    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #fff; padding: 6px; border-radius: 12px; margin-bottom: 12px; }
+    .tab-btn { border: none; background: transparent; padding: 10px 4px; font-size: 13px; font-weight: bold; color: #64748b; border-radius: 8px; cursor: pointer; }
     .tab-btn.active { background: #2563eb; color: #fff; }
     .panel { display: none; }
     .panel.active { display: block; }
-    .card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    }
+    .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
     .card h2 { margin: 0 0 6px; font-size: 15px; }
     .desc { margin: 0 0 12px; font-size: 12px; color: #64748b; }
-    textarea, input[type="file"], select {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 14px;
-      font-family: inherit;
-      margin-bottom: 10px;
-    }
-    textarea { min-height: 90px; }
-    .teleprompter {
-      background: #0f172a;
-      color: #f8fafc;
-      padding: 14px;
-      border-radius: 10px;
-      font-size: 18px;
-      line-height: 1.6;
-      max-height: 160px;
-      overflow-y: auto;
-      margin-bottom: 12px;
-    }
-    .rec-box {
-      background: #f8fafc;
-      border: 2px dashed #cbd5e1;
-      border-radius: 10px;
-      padding: 14px;
-      text-align: center;
-      margin-bottom: 12px;
-    }
+    textarea, input[type="file"], select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-family: inherit; margin-bottom: 10px; }
+    textarea { min-height: 85px; }
+    .teleprompter { background: #0f172a; color: #38bdf8; padding: 14px; border-radius: 10px; font-size: 18px; font-weight: bold; line-height: 1.6; min-height: 70px; max-height: 160px; overflow-y: auto; margin-bottom: 12px; }
+    .rec-box { background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 10px; padding: 14px; text-align: center; margin-bottom: 12px; }
     .timer { font-size: 24px; font-weight: bold; font-family: monospace; margin: 6px 0; color: #dc2626; }
     .btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-    .btn {
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: bold;
-      padding: 11px 16px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      text-decoration: none;
-    }
-    .btn:disabled { opacity: 0.45; }
+    .btn { font-family: inherit; font-size: 14px; font-weight: bold; padding: 12px 16px; border-radius: 10px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; }
+    .btn:active { transform: scale(0.97); }
     .btn-blue { background: #2563eb; color: #fff; }
     .btn-red { background: #dc2626; color: #fff; }
     .btn-green { background: #16a34a; color: #fff; }
     .btn-gray { background: #e2e8f0; color: #0f172a; }
     .btn-full { width: 100%; }
-    .audio-item {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 10px;
-      margin-bottom: 8px;
-    }
+    .audio-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; margin-bottom: 8px; }
     audio { width: 100%; height: 38px; margin-top: 6px; }
-    .video-stage {
-      background: #000;
-      border-radius: 10px;
-      overflow: hidden;
-      aspect-ratio: 9 / 16;
-      max-height: 340px;
-      margin: 0 auto 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    .video-stage { background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 9 / 16; max-height: 320px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; }
     .video-stage canvas { width: 100%; height: 100%; object-fit: contain; }
-    .status {
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: bold;
-      background: #eff6ff;
-      color: #1d4ed8;
-      margin-top: 10px;
-      display: none;
-    }
-    .code-box {
-      background: #0f172a;
-      color: #38bdf8;
-      padding: 12px;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 11px;
-      white-space: pre-wrap;
-      overflow-x: auto;
-      margin-bottom: 10px;
-    }
+    .code-box { background: #0f172a; color: #38bdf8; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 11px; white-space: pre-wrap; overflow-x: auto; margin-bottom: 10px; }
   </style>
 </head>
 <body>
 
   <div class="header">
     <h1>🎙️ สตูดิโอพากย์เสียงส่วนตัว</h1>
-    <button type="button" class="install-btn" id="btn-install">📲 วิธีติดตั้งแอป</button>
+    <button type="button" class="install-btn" onclick="showInstallHelp()">📲 วิธีติดตั้งแอป</button>
   </div>
 
   <div class="container">
+    <div id="js-status" class="ready-bar">⏳ กำลังโหลดระบบ... (หากข้อความนี้ไม่เปลี่ยน แปลว่าก๊อปโค้ดมาไม่ครบ)</div>
+
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="openTab('tab1', this)">1. อัดเสียง</button>
-      <button type="button" class="tab-btn" onclick="openTab('tab2', this)">2. รวมใส่คลิป</button>
-      <button type="button" class="tab-btn" onclick="openTab('tab3', this)">3. โคลน AI ฟรี</button>
+      <button type="button" class="tab-btn active" id="tbtn-1" onclick="switchTab(1)">1. อัดเสียง</button>
+      <button type="button" class="tab-btn" id="tbtn-2" onclick="switchTab(2)">2. รวมใส่คลิป</button>
+      <button type="button" class="tab-btn" id="tbtn-3" onclick="switchTab(3)">3. โคลน AI ฟรี</button>
     </div>
 
-    <!-- แท็บ 1: อัดเสียง & อ่านบท -->
-    <div id="tab1" class="panel active">
+    <!-- แท็บ 1 -->
+    <div id="panel-1" class="panel active">
       <div class="card">
         <h2>1. พิมพ์บทพากย์ & กดอัดเสียงของคุณ</h2>
-        <p class="desc">พิมพ์บทด้านล่าง ตัวหนังสือใหญ่จะขึ้นในกล่องสีดำให้อ่านตามง่ายๆ ขณะอัดเสียง</p>
-        <textarea id="script-text">สวัสดีครับทุกคน วันนี้พามาดูเรื่องราวสุดพิเศษที่คุณอาจไม่เคยรู้มาก่อน ติดตามชมไปพร้อมกันเลยครับ</textarea>
+        <p class="desc">พิมพ์บทด้านล่าง ตัวหนังสือใหญ่จะแสดงในกล่องสีดำให้อ่านตามง่ายๆ</p>
+        <textarea id="script-text" oninput="syncText()">สวัสดีครับทุกคน วันนี้พามาดูเรื่องราวสุดพิเศษที่คุณอาจไม่เคยรู้มาก่อน ติดตามชมไปพร้อมกันเลยครับ</textarea>
 
         <div class="btn-row" style="margin-bottom:10px;">
-          <button type="button" class="btn btn-gray" id="btn-tts-speak">🔊 ฟังเสียง AI อ่านบทนี้</button>
-          <button type="button" class="btn btn-gray" id="btn-tts-stop">⏹️ หยุดฟัง</button>
+          <button type="button" class="btn btn-gray" onclick="speakText()">🔊 ฟังเสียง AI อ่านบทนี้</button>
+          <button type="button" class="btn btn-gray" onclick="stopSpeak()">⏹️ หยุดฟัง</button>
         </div>
 
-        <div class="teleprompter" id="tele-box"></div>
+        <div class="teleprompter" id="tele-box">สวัสดีครับทุกคน วันนี้พามาดูเรื่องราวสุดพิเศษที่คุณอาจไม่เคยรู้มาก่อน ติดตามชมไปพร้อมกันเลยครับ</div>
 
         <div class="rec-box">
           <div id="rec-label" style="font-weight:bold;font-size:14px;">แตะปุ่มสีน้ำเงินเพื่อเริ่มอัดเสียงพากย์</div>
           <div class="timer" id="rec-timer">0.0 วินาที</div>
           <div class="btn-row">
-            <button type="button" class="btn btn-blue" id="btn-start-rec">🎙️ เริ่มอัดเสียงไมค์</button>
-            <button type="button" class="btn btn-red" id="btn-stop-rec" disabled>⏹️ หยุดอัดและบันทึก</button>
+            <button type="button" class="btn btn-blue" id="btn-start" onclick="startRecord()">🎙️ เริ่มอัดเสียงไมค์</button>
+            <button type="button" class="btn btn-red" id="btn-stop" onclick="stopRecord()">⏹️ หยุดอัดและบันทึก</button>
           </div>
         </div>
 
         <label style="font-size:13px;font-weight:bold;">หรือเลือกไฟล์เสียงที่มีในมือถือ (.mp3, .wav, .m4a)</label>
-        <input type="file" id="file-audio" accept="audio/*">
-        <div id="status-1" class="status"></div>
+        <input type="file" id="file-audio" accept="audio/*" onchange="uploadAudio(this)">
       </div>
 
       <div class="card">
@@ -218,19 +95,26 @@
       </div>
     </div>
 
-    <!-- แท็บ 2: รวมเสียงใส่คลิป -->
-    <div id="tab2" class="panel">
+    <!-- แท็บ 2 -->
+    <div id="panel-2" class="panel">
       <div class="card">
         <h2>2. รวมเสียงพากย์ใส่คลิปวิดีโอ (9:16)</h2>
-        <p class="desc">อัปโหลดคลิปวิดีโอ แล้วเลือกเสียงที่คุณอัดไว้เพื่อรวมเป็นไฟล์เดียวกัน</p>
+        <p class="desc">เลือกคลิปวิดีโอและไฟล์เสียงของคุณเพื่อรวมเป็นไฟล์เดียวกัน</p>
 
-        <label style="font-size:13px;font-weight:bold;">เลือกคลิปวิดีโอจากมือถือ (ถ้าไม่เลือกจะใช้ภาพจำลอง)</label>
-        <input type="file" id="file-video" accept="video/*">
+        <label style="font-size:13px;font-weight:bold;">1. เลือกคลิปวิดีโอจากมือถือ (ถ้าไม่เลือกจะใช้ภาพจำลอง)</label>
+        <input type="file" id="file-video" accept="video/*" onchange="uploadVideo(this)">
 
-        <label style="font-size:13px;font-weight:bold;">เลือกเสียงพากย์ของคุณ</label>
+        <label style="font-size:13px;font-weight:bold;">2. เลือกเสียงพากย์ของคุณ</label>
         <select id="select-audio">
           <option value="">-- กรุณาอัดเสียงในแท็บที่ 1 ก่อนครับ --</option>
         </select>
 
-        <button type="button" class="btn btn-green btn-full" id="btn-merge">🎬 รวมเสียงใส่คลิป & สร้างปุ่มดาวน์โหลด</button>
-        <div id="status-2" class="status"></div
+        <button type="button" class="btn btn-green btn-full" onclick="mergeVideoAudio()">🎬 รวมเสียงใส่คลิป & สร้างปุ่มดาวน์โหลด</button>
+        <div id="merge-status" style="margin-top:10px;font-weight:bold;font-size:13px;color:#1d4ed8;"></div>
+      </div>
+
+      <div class="card">
+        <h2>หน้าจอพรีวิวและดาวน์โหลดคลิป</h2>
+        <div class="video-stage">
+          <canvas id="vid-canvas" width="720" height="1280"></canvas>
+      
