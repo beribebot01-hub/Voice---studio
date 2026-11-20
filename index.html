@@ -2,231 +2,235 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>สตูดิโอพากย์เสียงส่วนตัว (PWA)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>สตูดิโอพากย์เสียง & รวมคลิปส่วนตัว</title>
   <meta name="theme-color" content="#2563eb">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="สตูดิโอพากย์">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%232563eb'/%3E%3Cpath d='M256 96a64 64 0 0 0-64 64v96a64 64 0 0 0 128 0v-96a64 64 0 0 0-64-64zm-112 160a16 16 0 0 0-32 0c0 74.2 56.1 135.5 128 143.2V432h-48a16 16 0 0 0 0 32h128a16 16 0 0 0 0 32h-48v-32.8c71.9-7.7 128-69 128-143.2a16 16 0 0 0-32 0c0 61.9-50.1 112-112 112s-112-50.1-112-112z' fill='%23ffffff'/%3E%3C/svg%3E">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%232563eb'/%3E%3Cpath d='M256 96a64 64 0 0 0-64 64v96a64 64 0 0 0 128 0v-96a64 64 0 0 0-64-64zm-112 160a16 16 0 0 0-32 0c0 74.2 56.1 135.5 128 143.2V432h-48a16 16 0 0 0 0 32h128a16 16 0 0 0 0 32h-48v-32.8c71.9-7.7 128-69 128-143.2a16 16 0 0 0-32 0c0 61.9-50.1 112-112 112s-112-50.1-112-112z' fill='%23ffffff'/%3E%3C/svg%3E">
   <style>
-    :root {
-      --bg:#f4f6fb; --surface:#fff; --surface-alt:#f8fafc; --border:#e2e8f0;
-      --ink:#0f172a; --muted:#64748b; --brand:#2563eb; --brand-soft:#eff6ff;
-      --danger:#dc2626; --success:#16a34a; --radius:14px; --radius-sm:10px;
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding-bottom: 40px;
     }
-    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Noto Sans Thai",sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; padding-bottom:30px; }
-    .app-header { background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .brand { display:flex; align-items:center; gap:10px; }
-    .brand-icon { width:38px; height:38px; border-radius:10px; background:var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; }
-    .app-title { margin:0; font-size:16px; font-weight:700; }
-    .app-sub { margin:0; font-size:11px; color:var(--muted); }
-    .install-btn { font:inherit; font-size:12px; font-weight:700; background:var(--success); color:#fff; border:none; padding:7px 12px; border-radius:999px; cursor:pointer; }
-    .container { max-width:900px; margin:0 auto; padding:14px; }
-    .nav-tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; background:var(--surface); padding:6px; border-radius:var(--radius); border:1px solid var(--border); margin-bottom:14px; }
-    .tab-btn { font:inherit; font-size:13px; font-weight:600; padding:10px 4px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--muted); cursor:pointer; }
-    .tab-btn.active { background:var(--brand); color:#fff; }
-    .tab-panel { display:none; }
-    .tab-panel.active { display:block; }
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
-    .card-title { margin:0 0 4px; font-size:15px; font-weight:700; }
-    .card-desc { margin:0 0 12px; font-size:12px; color:var(--muted); }
-    .input, .textarea, .select { width:100%; font:inherit; font-size:14px; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:10px; }
-    .textarea { min-height:90px; }
-    .teleprompter { background:#0f172a; color:#f8fafc; border-radius:var(--radius-sm); padding:14px; margin-bottom:12px; max-height:160px; overflow-y:auto; font-size:17px; line-height:1.7; }
-    .rec-box { background:var(--surface-alt); border:1px dashed var(--border); border-radius:var(--radius-sm); padding:14px; text-align:center; margin-bottom:12px; }
-    .timer { font-family:monospace; font-size:22px; font-weight:700; margin:6px 0; }
-    .meter { height:8px; background:var(--border); border-radius:999px; overflow:hidden; max-width:220px; margin:0 auto 12px; }
-    .meter-fill { height:100%; width:0%; background:linear-gradient(90deg,#22c55e,#eab308,#ef4444); }
-    .btn-row { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-    .btn { font:inherit; font-size:14px; font-weight:600; padding:10px 14px; border-radius:var(--radius-sm); border:1px solid transparent; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
-    .btn:disabled { opacity:0.5; }
-    .btn-primary { background:var(--brand); color:#fff; }
-    .btn-danger { background:var(--danger); color:#fff; }
-    .btn-soft { background:var(--brand-soft); color:var(--brand); }
-    .btn-full { width:100%; }
-    .audio-item { padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-alt); margin-bottom:8px; }
-    audio { width:100%; height:36px; margin-top:6px; }
-    .video-wrap { background:#090d16; border-radius:var(--radius-sm); overflow:hidden; aspect-ratio:9/16; max-height:360px; margin:0 auto 12px; display:flex; align-items:center; justify-content:center; }
-    .video-wrap canvas { width:100%; height:100%; object-fit:contain; }
-    .code-box { background:#0f172a; color:#e2e8f0; padding:12px; border-radius:var(--radius-sm); font-family:monospace; font-size:12px; overflow-x:auto; white-space:pre-wrap; margin-bottom:10px; }
-    .banner { padding:10px; border-radius:var(--radius-sm); font-size:13px; margin-top:10px; display:none; background:var(--brand-soft); color:var(--brand); }
+    .header {
+      background: #2563eb;
+      color: #fff;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .header h1 { margin: 0; font-size: 16px; }
+    .install-btn {
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .container { max-width: 600px; margin: 0 auto; padding: 12px; }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      background: #fff;
+      padding: 6px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 10px 4px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #64748b;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .tab-btn.active { background: #2563eb; color: #fff; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .card h2 { margin: 0 0 6px; font-size: 15px; }
+    .desc { margin: 0 0 12px; font-size: 12px; color: #64748b; }
+    textarea, input[type="file"], select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      margin-bottom: 10px;
+    }
+    textarea { min-height: 90px; }
+    .teleprompter {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 18px;
+      line-height: 1.6;
+      max-height: 160px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+    }
+    .rec-box {
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .timer { font-size: 24px; font-weight: bold; font-family: monospace; margin: 6px 0; color: #dc2626; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .btn {
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .btn:disabled { opacity: 0.45; }
+    .btn-blue { background: #2563eb; color: #fff; }
+    .btn-red { background: #dc2626; color: #fff; }
+    .btn-green { background: #16a34a; color: #fff; }
+    .btn-gray { background: #e2e8f0; color: #0f172a; }
+    .btn-full { width: 100%; }
+    .audio-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+    audio { width: 100%; height: 38px; margin-top: 6px; }
+    .video-stage {
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 9 / 16;
+      max-height: 340px;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .video-stage canvas { width: 100%; height: 100%; object-fit: contain; }
+    .status {
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      background: #eff6ff;
+      color: #1d4ed8;
+      margin-top: 10px;
+      display: none;
+    }
+    .code-box {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 11px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
-  <header class="app-header">
-    <div class="brand">
-      <div class="brand-icon">🎙️</div>
-      <div>
-        <h1 class="app-title">สตูดิโอพากย์เสียงส่วนตัว</h1>
-        <p class="app-sub">PWA App • อัดเสียง • โคลนเสียง • รวมคลิป</p>
+
+  <div class="header">
+    <h1>🎙️ สตูดิโอพากย์เสียงส่วนตัว</h1>
+    <button type="button" class="install-btn" id="btn-install">📲 วิธีติดตั้งแอป</button>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <button type="button" class="tab-btn active" onclick="openTab('tab1', this)">1. อัดเสียง</button>
+      <button type="button" class="tab-btn" onclick="openTab('tab2', this)">2. รวมใส่คลิป</button>
+      <button type="button" class="tab-btn" onclick="openTab('tab3', this)">3. โคลน AI ฟรี</button>
+    </div>
+
+    <!-- แท็บ 1: อัดเสียง & อ่านบท -->
+    <div id="tab1" class="panel active">
+      <div class="card">
+        <h2>1. พิมพ์บทพากย์ & กดอัดเสียงของคุณ</h2>
+        <p class="desc">พิมพ์บทด้านล่าง ตัวหนังสือใหญ่จะขึ้นในกล่องสีดำให้อ่านตามง่ายๆ ขณะอัดเสียง</p>
+        <textarea id="script-text">สวัสดีครับทุกคน วันนี้พามาดูเรื่องราวสุดพิเศษที่คุณอาจไม่เคยรู้มาก่อน ติดตามชมไปพร้อมกันเลยครับ</textarea>
+
+        <div class="btn-row" style="margin-bottom:10px;">
+          <button type="button" class="btn btn-gray" id="btn-tts-speak">🔊 ฟังเสียง AI อ่านบทนี้</button>
+          <button type="button" class="btn btn-gray" id="btn-tts-stop">⏹️ หยุดฟัง</button>
+        </div>
+
+        <div class="teleprompter" id="tele-box"></div>
+
+        <div class="rec-box">
+          <div id="rec-label" style="font-weight:bold;font-size:14px;">แตะปุ่มสีน้ำเงินเพื่อเริ่มอัดเสียงพากย์</div>
+          <div class="timer" id="rec-timer">0.0 วินาที</div>
+          <div class="btn-row">
+            <button type="button" class="btn btn-blue" id="btn-start-rec">🎙️ เริ่มอัดเสียงไมค์</button>
+            <button type="button" class="btn btn-red" id="btn-stop-rec" disabled>⏹️ หยุดอัดและบันทึก</button>
+          </div>
+        </div>
+
+        <label style="font-size:13px;font-weight:bold;">หรือเลือกไฟล์เสียงที่มีในมือถือ (.mp3, .wav, .m4a)</label>
+        <input type="file" id="file-audio" accept="audio/*">
+        <div id="status-1" class="status"></div>
+      </div>
+
+      <div class="card">
+        <h2>คลังเสียงพากย์ของคุณ</h2>
+        <div id="audio-list">
+          <p class="desc">ยังไม่มีไฟล์เสียง กดอัดเสียงด้านบนได้เลยครับ</p>
+        </div>
       </div>
     </div>
-    <button type="button" class="install-btn" id="btn-install">📲 ติดตั้งแอป</button>
-  </header>
 
-  <main class="container">
-    <nav class="nav-tabs">
-      <button type="button" class="tab-btn active" data-tab="t1">1. อัดเสียง</button>
-      <button type="button" class="tab-btn" data-tab="t2">2. โคลนเสียง AI</button>
-      <button type="button" class="tab-btn" data-tab="t3">3. รวมใส่คลิป</button>
-    </nav>
-
-    <section id="t1" class="tab-panel active">
+    <!-- แท็บ 2: รวมเสียงใส่คลิป -->
+    <div id="tab2" class="panel">
       <div class="card">
-        <h2 class="card-title">อัดเสียงผ่านไมค์มือถือ (พร้อม Teleprompter)</h2>
-        <p class="card-desc">วางบทพากย์ด้านล่างเพื่ออ่านตามขณะกดอัดเสียง</p>
-        <textarea id="script-in" class="textarea">สวัสดีครับทุกคน วันนี้ผมกำลังทดสอบระบบบันทึกเสียงต้นฉบับภาษาไทย เพื่อนำไปใช้สร้างคลิปวิดีโอบนมือถือครับ</textarea>
-        <div class="teleprompter" id="tele-view"></div>
-        <div class="rec-box">
-          <div id="rec-txt" style="font-weight:600;font-size:14px;">พร้อมบันทึกเสียง</div>
-          <div class="timer" id="rec-time">0.0 วินาที</div>
-          <div class="meter"><div class="meter-fill" id="rec-bar"></div></div>
-          <div class="btn-row">
-            <button type="button" class="btn btn-primary" id="btn-rec">🎙️ เริ่มอัดเสียง</button>
-            <button type="button" class="btn btn-danger" id="btn-stop" disabled>⏹️ หยุดอัด</button>
-          </div>
-        </div>
-        <label style="font-size:13px;font-weight:600;">หรืออัปโหลดไฟล์เสียงในเครื่อง (.mp3, .wav, .m4a)</label>
-        <input type="file" id="up-audio" accept="audio/*" class="input">
-        <div id="b1" class="banner"></div>
-      </div>
-      <div class="card">
-        <h2 class="card-title">คลังไฟล์เสียงของคุณ</h2>
-        <div id="clip-list"><p class="card-desc">ยังไม่มีไฟล์เสียง กดอัดเสียงด้านบนได้เลยครับ</p></div>
-      </div>
-    </section>
+        <h2>2. รวมเสียงพากย์ใส่คลิปวิดีโอ (9:16)</h2>
+        <p class="desc">อัปโหลดคลิปวิดีโอ แล้วเลือกเสียงที่คุณอัดไว้เพื่อรวมเป็นไฟล์เดียวกัน</p>
 
-    <section id="t2" class="tab-panel">
-      <div class="card">
-        <h2 class="card-title">โค้ดรัน F5-TTS ภาษาไทยฟรีบน Google Colab</h2>
-        <p class="card-desc">คัดลอกไปวางใน Google Colab บนมือถือเพื่อโคลนเสียงของคุณฟรีไม่จำกัด</p>
-        <div class="code-box" id="colab-code">!pip install -q f5-tts-th gradio soundfile
-import gradio as gr, soundfile as sf
-from f5_tts_th.tts import TTS
-tts = TTS(model="v1")
-def run(a, r, g):
-    w = tts.infer(ref_audio=a, ref_text=r, gen_text=g)
-    sf.write("out.wav", w, 24000)
-    return "out.wav"
-gr.Interface(fn=run, inputs=[gr.Audio(type="filepath"), "text", "text"], outputs="audio").launch(share=True)</div>
-        <button type="button" class="btn btn-soft btn-full" id="btn-copy">📋 คัดลอกโค้ด Colab</button>
-      </div>
-    </section>
+        <label style="font-size:13px;font-weight:bold;">เลือกคลิปวิดีโอจากมือถือ (ถ้าไม่เลือกจะใช้ภาพจำลอง)</label>
+        <input type="file" id="file-video" accept="video/*">
 
-    <section id="t3" class="tab-panel">
-      <div class="card">
-        <h2 class="card-title">รวมเสียงพากย์ใส่คลิปวิดีโอ (9:16 / 16:9)</h2>
-        <label style="font-size:13px;font-weight:600;">1. เลือกคลิปวิดีโอ</label>
-        <input type="file" id="up-vid" accept="video/*" class="input">
-        <label style="font-size:13px;font-weight:600;">2. เลือกไฟล์เสียงพากย์ของคุณ</label>
-        <select id="sel-audio" class="select"><option value="">-- กรุณาอัดเสียงในแท็บที่ 1 --</option></select>
-        <button type="button" class="btn btn-primary btn-full" id="btn-merge">🎬 รวมเสียงใส่คลิปและสร้างไฟล์ดาวน์โหลด</button>
-        <div id="b3" class="banner"></div>
-      </div>
-      <div class="card">
-        <div class="video-wrap">
-          <canvas id="v-canvas" width="720" height="1280"></canvas>
-          <video id="src-vid" playsinline crossorigin="anonymous" style="display:none;"></video>
-        </div>
-        <div id="out-box"></div>
-      </div>
-    </section>
-  </main>
+        <label style="font-size:13px;font-weight:bold;">เลือกเสียงพากย์ของคุณ</label>
+        <select id="select-audio">
+          <option value="">-- กรุณาอัดเสียงในแท็บที่ 1 ก่อนครับ --</option>
+        </select>
 
-  <script>
-    // PWA Manifest & Service Worker Setup
-    (function setupPWA() {
-      const manifest = {
-        name: "สตูดิโอพากย์เสียงและรวมคลิปส่วนตัว",
-        short_name: "สตูดิโอพากย์",
-        start_url: ".",
-        display: "standalone",
-        background_color: "#f4f6fb",
-        theme_color: "#2563eb",
-        icons: [{
-          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%232563eb'/%3E%3Cpath d='M256 96a64 64 0 0 0-64 64v96a64 64 0 0 0 128 0v-96a64 64 0 0 0-64-64z' fill='%23fff'/%3E%3C/svg%3E",
-          sizes: "512x512",
-          type: "image/svg+xml"
-        }]
-      };
-      const mLink = document.createElement('link');
-      mLink.rel = 'manifest';
-      mLink.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
-      document.head.appendChild(mLink);
-
-      let deferredPrompt = null;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-      });
-      document.getElementById('btn-install').addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          deferredPrompt = null;
-        } else {
-          alert('วิธีติดตั้งลงหน้าจอมือถือ:\n• Chrome (Android): กดปุ่มจุด 3 จุดมุมขวาบน > เลือก "เพิ่มลงในหน้าจอโฮม" หรือ "ติดตั้งแอป"\n• Safari (iPhone): กดปุ่มแชร์ด้านล่าง > เลือก "เพิ่มไปยังหน้าจอโฮม"');
-        }
-      });
-    })();
-
-    // App Logic
-    (function() {
-      const clips = [];
-      let rec = null, chunks = [], tStart = 0, tInt = null, stream = null, isDemo = true;
-      const scriptIn = document.getElementById('script-in');
-      const teleView = document.getElementById('tele-view');
-      const clipList = document.getElementById('clip-list');
-      const selAudio = document.getElementById('sel-audio');
-      const canvas = document.getElementById('v-canvas');
-      const ctx = canvas.getContext('2d');
-      const srcVid = document.getElementById('src-vid');
-
-      document.querySelectorAll('.tab-btn').forEach(b => {
-        b.addEventListener('click', () => {
-          document.querySelectorAll('.tab-btn, .tab-panel').forEach(el => el.classList.remove('active'));
-          b.classList.add('active');
-          document.getElementById(b.dataset.tab).classList.add('active');
-        });
-      });
-
-      function syncTele() { teleView.textContent = scriptIn.value; }
-      scriptIn.addEventListener('input', syncTele);
-      syncTele();
-
-      function addClip(name, blob) {
-        const url = URL.createObjectURL(blob);
-        const c = { id: 'c' + Date.now(), name, url, blob };
-        clips.unshift(c);
-        selAudio.innerHTML = clips.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
-        clipList.innerHTML = clips.map(x => `
-          <div class="audio-item">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <strong>${x.name}</strong>
-              <a class="btn btn-soft" href="\${x.url}" download="\${x.name}.webm" style="padding:4px 10px;font-size:12px;">⬇️ ดาวน์โหลด</a>
-            </div>
-            <audio controls src="${x.url}"></audio>
-          </div>
-        `).join('');
-      }
-
-      document.getElementById('btn-rec').addEventListener('click', async () => {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          chunks = [];
-          rec = new MediaRecorder(stream);
-          rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-          rec.onstop = () => {
-            addClip('เสียงพากย์ #' + (clips.length + 1), new Blob(chunks, { type: rec.mimeType || 'audio/webm' }));
-            stream.getTracks().forEach(t => t.stop());
-            clearInterval(tInt);
-            document.getElementById('btn-rec').disabled = false;
-            document.getElementById('btn-stop').disabled = true;
-            document.getElementById('rec-txt').textContent = 'บันทึกสำเร็จ!';
-          };
-          rec.start(100);
-          tStart = Date.now();
-          docu
+        <button type="button" class="btn btn-green btn-full" id="btn-merge">🎬 รวมเสียงใส่คลิป & สร้างปุ่มดาวน์โหลด</button>
+        <div id="status-2" class="status"></div
