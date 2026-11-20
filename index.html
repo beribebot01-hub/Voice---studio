@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>สตูดิโอพากย์เสียง AI (V3)</title>
+<title>สตูดิโอพากย์เสียง AI (V4)</title>
 <script>
-var clips = [], rec = null, chunks = [], tId = null, t0 = 0, stream = null, hasVid = false;
+var clips = [], isRec = false, rec = null, chunks = [], tId = null, t0 = 0, stream = null, hasVid = false;
 
 function tab(n) {
   for (var i = 1; i <= 3; i++) {
@@ -24,50 +24,87 @@ function addClip(name, blob) {
   document.getElementById('sel').innerHTML = opts;
   document.getElementById('ref-sel').innerHTML = opts;
   document.getElementById('list').innerHTML = clips.map(function(c) {
-    return '<div style="padding:10px;border:1px solid #cbd5e1;border-radius:8px;margin-top:8px;background:#f8fafc;">' +
-      '<b>' + c.name + '</b> <a href="' + c.url + '" download="' + c.name + '.wav" style="float:right;color:#2563eb;font-weight:bold;">⬇️ ดาวน์โหลด</a>' +
+    return '<div style="padding:10px;border:1px solid #86efac;border-radius:8px;margin-top:8px;background:#f0fdf4;">' +
+      '<b>✅ ' + c.name + '</b> <a href="' + c.url + '" download="' + c.name + '.webm" style="float:right;color:#16a34a;font-weight:bold;">⬇️ ดาวน์โหลด</a>' +
       '<audio controls src="' + c.url + '" style="width:100%;margin-top:8px;"></audio></div>';
   }).join('');
 }
 
 async function recStart() {
+  if (isRec) return;
   try {
-    document.getElementById('msg').innerText = '⏳ กำลังเปิดไมค์...';
+    if (tId) { clearInterval(tId); tId = null; }
+    document.getElementById('msg').innerText = '⏳ กำลังเปิดไมโครโฟน...';
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     chunks = [];
     rec = new MediaRecorder(stream);
-    rec.ondataavailable = function(e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
-    rec.onstop = function() {
-      addClip('เสียงต้นฉบับ #' + (clips.length + 1), new Blob(chunks, { type: rec.mimeType || 'audio/webm' }));
-      stream.getTracks().forEach(function(t) { t.stop(); });
-      clearInterval(tId);
-      document.getElementById('msg').innerText = '✅ บันทึกสำเร็จ! กดไปที่แท็บ "2. โคลน AI" ได้เลย';
+
+    rec.ondataavailable = function(e) {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
     };
-    rec.start(100);
+
+    rec.onstop = function() {
+      var blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+      addClip('เสียงต้นฉบับ #' + (clips.length + 1), blob);
+      document.getElementById('msg').innerText = '🎉 บันทึกเสียงสำเร็จ! เลื่อนดูด้านล่าง หรือกดไปแท็บ "2. โคลน AI" ได้เลย';
+    };
+
+    rec.start();
+    isRec = true;
     t0 = Date.now();
-    document.getElementById('msg').innerText = '🔴 กำลังอัดเสียง... อ่านประโยคด้านบนได้เลยครับ';
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('btn-start').style.opacity = '0.4';
+    document.getElementById('btn-stop').disabled = false;
+    document.getElementById('btn-stop').style.opacity = '1';
+    document.getElementById('msg').innerText = '🔴 กำลังอัดเสียง... (พูดเสร็จแล้วแตะปุ่มสีแดงเพื่อหยุดและเซฟ)';
+
     tId = setInterval(function() {
-      document.getElementById('tm').innerText = ((Date.now() - t0) / 1000).toFixed(1) + ' วินาที';
+      var sec = (Date.now() - t0) / 1000;
+      document.getElementById('tm').innerText = sec.toFixed(1) + ' / 15.0 วินาที';
+      if (sec >= 15) {
+        recStop();
+      }
     }, 100);
   } catch (e) {
-    alert('กรุณากดอนุญาต (Allow) การใช้ไมโครโฟนบนเบราว์เซอร์ครับ');
+    isRec = false;
+    alert('เปิดไมค์ไม่ได้: กรุณากดอนุญาตการใช้ไมค์ หรือกดปุ่มสีเขียวด้านล่างเพื่ออัดเสียงแทนครับ');
   }
 }
 
 function recStop() {
-  if (rec && rec.state !== 'inactive') rec.stop();
-  else alert('กดปุ่มสีน้ำเงิน "เริ่มอัดเสียงไมค์" ก่อนครับ');
+  if (tId) { clearInterval(tId); tId = null; }
+  isRec = false;
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-start').style.opacity = '1';
+  document.getElementById('btn-stop').disabled = true;
+  document.getElementById('btn-stop').style.opacity = '0.4';
+
+  try {
+    if (rec && rec.state !== 'inactive') {
+      rec.stop();
+    }
+  } catch (e) {}
+
+  try {
+    if (stream) {
+      stream.getTracks().forEach(function(t) { t.stop(); });
+      stream = null;
+    }
+  } catch (e) {}
 }
 
 function upAud(el) {
-  var f = el.files[0];
-  if (f) { addClip(f.name, f); alert('✅ เพิ่มไฟล์เสียงเรียบร้อย!'); }
+  var f = el.files && el.files[0];
+  if (f) {
+    addClip('เสียงของฉัน (' + f.name + ')', f);
+    document.getElementById('msg').innerText = '🎉 นำเข้าไฟล์เสียงสำเร็จ! กดไปที่แท็บ "2. โคลน AI" ได้เลย';
+  }
 }
 
 async function cloneVoiceAI() {
   var refId = document.getElementById('ref-sel').value;
   var refClip = clips.find(function(x) { return x.id === refId; });
-  if (!refClip) return alert('กรุณาอัดเสียงต้นฉบับของคุณในแท็บที่ 1 ก่อนครับ!');
+  if (!refClip) return alert('กรุณาอัดเสียงต้นฉบับในแท็บที่ 1 ก่อนครับ!');
 
   var refText = document.getElementById('ref-txt').value.trim();
   var genText = document.getElementById('gen-txt').value.trim();
@@ -76,20 +113,17 @@ async function cloneVoiceAI() {
   var st = document.getElementById('ai-msg');
   var btn = document.getElementById('btn-ai');
   btn.disabled = true;
-  st.innerText = '⏳ กำลังส่งเสียงของคุณไปให้ AI โคลนเสียง (ใช้เวลาประมาณ 15-40 วินาที)...';
+  st.innerText = '⏳ กำลังส่งเสียงไปให้ AI โคลนเสียง (รอประมาณ 15-40 วินาที)...';
 
   try {
     var mod = await import('https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js');
-    var spaceName = document.getElementById('space-id').value.trim() || 'VIZINTZOR/F5-TTS-THAI';
-    var app = await mod.Client.connect(spaceName);
-
+    var app = await mod.Client.connect('VIZINTZOR/F5-TTS-THAI');
     var info = await app.view_api();
     var ep = '/predict';
     if (info && info.named_endpoints) {
       var keys = Object.keys(info.named_endpoints);
       if (keys.length > 0) ep = keys[0];
     }
-
     var res = await app.predict(ep, [refClip.blob, refText, genText]);
     var out = res && res.data && res.data[0];
     var audioUrl = out && (out.url || out.path || (typeof out === 'string' ? out : null));
@@ -105,14 +139,14 @@ async function cloneVoiceAI() {
       '<audio controls autoplay src="' + URL.createObjectURL(aiBlob) + '" style="width:100%;margin-top:8px;"></audio></div>';
     st.innerText = '✅ โคลนเสียงสำเร็จ! นำไปรวมใส่คลิปในแท็บที่ 3 ได้เลยครับ';
   } catch (err) {
-    st.innerText = '⚠️ เซิร์ฟเวอร์ AI ฟรีกำลังคิวเต็มหรือปิดปรับปรุง (' + err.message + ') กรุณากดลองอีกครั้งในอีกสักครู่ครับ';
+    st.innerText = '⚠️ เซิร์ฟเวอร์ AI ฟรีกำลังคิวเต็ม (' + err.message + ') กรุณารอสักครู่แล้วกดปุ่มอีกครั้งครับ';
   } finally {
     btn.disabled = false;
   }
 }
 
 function upVid(el) {
-  var f = el.files[0];
+  var f = el.files && el.files[0];
   if (!f) return;
   hasVid = true;
   var v = document.getElementById('v');
@@ -167,7 +201,7 @@ async function merge() {
 <body style="margin:0;font-family:sans-serif;background:#f1f5f9;padding:12px;">
   <div style="max-width:560px;margin:0 auto;">
     <div style="background:#2563eb;color:#fff;padding:14px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <b>🎙️ สตูดิโอพากย์เสียง AI (V3)</b>
+      <b>🎙️ สตูดิโอพากย์เสียง AI (V4)</b>
       <button onclick="alert('กดจุด 3 จุดมุมขวาบนของ Chrome > เลือก เพิ่มลงในหน้าจอโฮม')" style="background:#16a34a;color:#fff;border:none;padding:6px 10px;border-radius:99px;font-weight:bold;">📲 ติดตั้งแอป</button>
     </div>
 
@@ -177,45 +211,47 @@ async function merge() {
       <button id="b3" onclick="tab(3)" style="padding:10px;border:none;border-radius:8px;background:#e2e8f0;color:#0f172a;font-weight:bold;">3. รวมคลิป</button>
     </div>
 
-    <!-- แท็บ 1: อัดเสียงต้นฉบับ -->
+    <!-- แท็บ 1 -->
     <div id="p1" style="background:#fff;padding:14px;border-radius:12px;">
-      <b>1. อ่านประโยคต้นฉบับนี้เพื่อเก็บเสียงของคุณ (10 วินาที):</b>
+      <b>อ่านประโยคนี้ขณะอัดเสียง (ไม่เกิน 15 วินาที):</b>
       <div style="background:#0f172a;color:#38bdf8;padding:12px;border-radius:8px;margin:8px 0;font-size:16px;font-weight:bold;">
         "สวัสดีครับ วันนี้ผมมาบันทึกเสียงต้นฉบับภาษาไทย เพื่อให้เอไอนำไปสร้างเสียงพากย์ครับ"
       </div>
-      <div style="background:#f8fafc;border:2px dashed #94a3b8;padding:12px;border-radius:10px;text-align:center;margin-bottom:10px;">
-        <div id="msg" style="font-weight:bold;margin-bottom:6px;">พร้อมบันทึกเสียงต้นฉบับ</div>
-        <div id="tm" style="font-size:22px;font-weight:bold;color:#dc2626;margin-bottom:8px;">0.0 วินาที</div>
+
+      <div style="background:#f8fafc;border:2px dashed #94a3b8;padding:12px;border-radius:10px;text-align:center;margin-bottom:12px;">
+        <div id="msg" style="font-weight:bold;margin-bottom:6px;color:#0f172a;">แตะปุ่มสีน้ำเงินเพื่อเริ่มอัดเสียง</div>
+        <div id="tm" style="font-size:22px;font-weight:bold;color:#dc2626;margin-bottom:10px;">0.0 / 15.0 วินาที</div>
         <div style="display:flex;gap:8px;">
-          <button onclick="recStart()" style="flex:1;padding:12px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;">🎙️ เริ่มอัดเสียงไมค์</button>
-          <button onclick="recStop()" style="flex:1;padding:12px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-weight:bold;">⏹️ หยุดอัด</button>
+          <button id="btn-start" onclick="recStart()" style="flex:1;padding:14px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;font-size:15px;">🎙️ เริ่มอัดเสียง</button>
+          <button id="btn-stop" onclick="recStop()" disabled style="flex:1;padding:14px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-weight:bold;font-size:15px;opacity:0.4;">⏹️ หยุดและเซฟ</button>
         </div>
       </div>
-      <b>หรืออัปโหลดไฟล์เสียงของคุณที่มีในเครื่อง:</b>
-      <input type="file" accept="audio/*" onchange="upAud(this)" style="width:100%;margin-top:6px;">
+
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:12px;border-radius:10px;">
+        <b>💡 หรือกดปุ่มด้านล่างเพื่อใช้ตัวอัดเสียงของเครื่อง/เลือกไฟล์เสียง:</b>
+        <input type="file" accept="audio/*" capture="microphone" onchange="upAud(this)" style="width:100%;margin-top:8px;">
+      </div>
+
       <div id="list" style="margin-top:12px;"></div>
     </div>
 
-    <!-- แท็บ 2: โคลนเสียง AI ในแอปทันที -->
+    <!-- แท็บ 2 -->
     <div id="p2" style="display:none;background:#fff;padding:14px;border-radius:12px;">
       <b>1. เลือกเสียงต้นฉบับของคุณ:</b>
-      <select id="ref-sel" style="width:100%;padding:10px;margin:6px 0 10px;border-radius:8px;"><option value="">-- กรุณาอัดเสียงในแท็บที่ 1 ก่อนครับ --</option></select>
+      <select id="ref-sel" style="width:100%;padding:10px;margin:6px 0 10px;border-radius:8px;"><option value="">-- อัดเสียงในแท็บที่ 1 ก่อนครับ --</option></select>
 
-      <b>2. ประโยคที่คุณพูดในเสียงต้นฉบับ:</b>
+      <b>2. ประโยคที่พูดในเสียงต้นฉบับ:</b>
       <input id="ref-txt" type="text" value="สวัสดีครับ วันนี้ผมมาบันทึกเสียงต้นฉบับภาษาไทย เพื่อให้เอไอนำไปสร้างเสียงพากย์ครับ" style="width:100%;padding:10px;margin:6px 0 10px;border-radius:8px;border:1px solid #cbd5e1;">
 
       <b>3. พิมพ์บทพากย์ใหม่ที่อยากให้ AI พูดเป็นเสียงคุณ:</b>
       <textarea id="gen-txt" style="width:100%;height:90px;padding:10px;margin:6px 0 10px;border-radius:8px;border:1px solid #cbd5e1;font-size:15px;">รู้หรือไม่ครับว่า แมวไทยโบราณเป็นสัตว์มงคลที่มีความฉลาดและซื่อสัตย์ต่อเจ้าของอย่างมาก</textarea>
 
-      <input id="space-id" type="hidden" value="VIZINTZOR/F5-TTS-THAI">
       <button id="btn-ai" onclick="cloneVoiceAI()" style="width:100%;padding:14px;border:none;border-radius:8px;background:#7c3aed;color:#fff;font-weight:bold;font-size:15px;">✨ สั่ง AI โคลนเสียงพูดตามบทนี้ทันที</button>
       <div id="ai-msg" style="margin-top:10px;font-weight:bold;color:#4f46e5;font-size:13px;"></div>
       <div id="ai-out"></div>
     </div>
 
-    <!-- แท็บ 3: รวมเสียงใส่คลิป -->
+    <!-- แท็บ 3 -->
     <div id="p3" style="display:none;background:#fff;padding:14px;border-radius:12px;">
-      <b>1. เลือกคลิปวิดีโอ:</b>
-      <input type="file" accept="video/*" onchange="upVid(this)" style="width:100%;margin:6px 0 12px;">
-      <b>2. เลือกเสียงพากย์ (เสียง AI หรือเสียงอัดเอง):</b>
-      <select id="sel" style="width
+      <b>1. เล
+
