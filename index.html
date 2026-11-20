@@ -1,120 +1,199 @@
 <!doctype html>
 <html lang="th" translate="no">
 <head>
-  <meta charset="utf-8">
-  <meta name="google" content="notranslate">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>สตูดิโอพากย์เสียงส่วนตัว</title>
-  <meta name="theme-color" content="#2563eb">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: sans-serif; background: #f1f5f9; color: #0f172a; padding-bottom: 40px; }
-    .header { background: #2563eb; color: #fff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
-    .header h1 { margin: 0; font-size: 16px; }
-    .install-btn { background: #16a34a; color: #fff; border: none; padding: 8px 12px; border-radius: 99px; font-size: 12px; font-weight: bold; cursor: pointer; }
-    .container { max-width: 600px; margin: 0 auto; padding: 12px; }
-    .ready-bar { background: #dcfce7; color: #166534; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: bold; margin-bottom: 12px; border: 1px solid #86efac; text-align: center; }
-    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #fff; padding: 6px; border-radius: 12px; margin-bottom: 12px; }
-    .tab-btn { border: none; background: transparent; padding: 10px 4px; font-size: 13px; font-weight: bold; color: #64748b; border-radius: 8px; cursor: pointer; }
-    .tab-btn.active { background: #2563eb; color: #fff; }
-    .panel { display: none; }
-    .panel.active { display: block; }
-    .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-    .card h2 { margin: 0 0 6px; font-size: 15px; }
-    .desc { margin: 0 0 12px; font-size: 12px; color: #64748b; }
-    textarea, input[type="file"], select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-family: inherit; margin-bottom: 10px; }
-    textarea { min-height: 85px; }
-    .teleprompter { background: #0f172a; color: #38bdf8; padding: 14px; border-radius: 10px; font-size: 18px; font-weight: bold; line-height: 1.6; min-height: 70px; max-height: 160px; overflow-y: auto; margin-bottom: 12px; }
-    .rec-box { background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 10px; padding: 14px; text-align: center; margin-bottom: 12px; }
-    .timer { font-size: 24px; font-weight: bold; font-family: monospace; margin: 6px 0; color: #dc2626; }
-    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-    .btn { font-family: inherit; font-size: 14px; font-weight: bold; padding: 12px 16px; border-radius: 10px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; }
-    .btn:active { transform: scale(0.97); }
-    .btn-blue { background: #2563eb; color: #fff; }
-    .btn-red { background: #dc2626; color: #fff; }
-    .btn-green { background: #16a34a; color: #fff; }
-    .btn-gray { background: #e2e8f0; color: #0f172a; }
-    .btn-full { width: 100%; }
-    .audio-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; margin-bottom: 8px; }
-    audio { width: 100%; height: 38px; margin-top: 6px; }
-    .video-stage { background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 9 / 16; max-height: 320px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; }
-    .video-stage canvas { width: 100%; height: 100%; object-fit: contain; }
-    .code-box { background: #0f172a; color: #38bdf8; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 11px; white-space: pre-wrap; overflow-x: auto; margin-bottom: 10px; }
-  </style>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>สตูดิโอพากย์เสียง</title>
+<script>
+var clips = [], rec = null, chunks = [], tId = null, t0 = 0, stream = null, hasVid = false;
+
+function tab(n) {
+  for (var i = 1; i <= 3; i++) {
+    document.getElementById('p' + i).style.display = (i === n) ? 'block' : 'none';
+    document.getElementById('b' + i).style.background = (i === n) ? '#2563eb' : '#e2e8f0';
+    document.getElementById('b' + i).style.color = (i === n) ? '#fff' : '#0f172a';
+  }
+}
+
+function speak() {
+  var t = document.getElementById('txt').value;
+  if (!window.speechSynthesis) return alert('เครื่องนี้ไม่รองรับเสียงอ่านอัตโนมัติ กรุณากดปุ่มอัดเสียงไมค์แทนครับ');
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(t);
+  u.lang = 'th-TH';
+  window.speechSynthesis.speak(u);
+  document.getElementById('msg').innerText = '🔊 กำลังอ่านบทพากย์...';
+}
+
+function stopSpeak() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  document.getElementById('msg').innerText = '⏹️ หยุดอ่านแล้ว';
+}
+
+function addClip(name, blob) {
+  var url = URL.createObjectURL(blob);
+  var id = 'c' + Date.now();
+  clips.unshift({ id: id, name: name, url: url, blob: blob });
+  var sel = document.getElementById('sel');
+  sel.innerHTML = clips.map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('');
+  document.getElementById('list').innerHTML = clips.map(function(c) {
+    return '<div style="padding:10px;border:1px solid #cbd5e1;border-radius:8px;margin-top:8px;background:#f8fafc;">' +
+      '<b>' + c.name + '</b> <a href="' + c.url + '" download="' + c.name + '.webm" style="float:right;color:#2563eb;font-weight:bold;">⬇️ ดาวน์โหลด</a>' +
+      '<audio controls src="' + c.url + '" style="width:100%;margin-top:8px;"></audio></div>';
+  }).join('');
+}
+
+async function recStart() {
+  try {
+    document.getElementById('msg').innerText = '⏳ กำลังขอเปิดไมค์...';
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    chunks = [];
+    rec = new MediaRecorder(stream);
+    rec.ondataavailable = function(e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
+    rec.onstop = function() {
+      addClip('เสียงพากย์ #' + (clips.length + 1), new Blob(chunks, { type: rec.mimeType || 'audio/webm' }));
+      stream.getTracks().forEach(function(t) { t.stop(); });
+      clearInterval(tId);
+      document.getElementById('msg').innerText = '✅ บันทึกเสียงสำเร็จ! ดูที่คลังด้านล่างได้เลย';
+    };
+    rec.start(100);
+    t0 = Date.now();
+    document.getElementById('msg').innerText = '🔴 กำลังอัดเสียง... พูดใส่ไมค์ได้เลย';
+    tId = setInterval(function() {
+      document.getElementById('tm').innerText = ((Date.now() - t0) / 1000).toFixed(1) + ' วินาที';
+    }, 100);
+  } catch (e) {
+    alert('เปิดไมค์ไม่ได้: กรุณากดอนุญาต (Allow) การใช้ไมโครโฟนบน Chrome ครับ');
+  }
+}
+
+function recStop() {
+  if (rec && rec.state !== 'inactive') rec.stop();
+  else alert('กรุณากดปุ่ม "เริ่มอัดเสียงไมค์" ก่อนครับ');
+}
+
+function upAud(el) {
+  var f = el.files[0];
+  if (f) { addClip(f.name, f); alert('เพิ่มไฟล์เสียงแล้ว!'); }
+}
+
+function upVid(el) {
+  var f = el.files[0];
+  if (!f) return;
+  hasVid = true;
+  var v = document.getElementById('v');
+  v.src = URL.createObjectURL(f);
+  v.load();
+  alert('โหลดคลิปวิดีโอเรียบร้อย!');
+}
+
+async function merge() {
+  var id = document.getElementById('sel').value;
+  var c = clips.find(function(x) { return x.id === id; });
+  if (!c) return alert('กรุณาอัดเสียงหรือเลือกไฟล์เสียงในแท็บที่ 1 ก่อนครับ!');
+  document.getElementById('mmsg').innerText = '⏳ กำลังรวมเสียงใส่คลิป รอสักครู่...';
+  try {
+    var cv = document.getElementById('cv'), ctx = cv.getContext('2d'), v = document.getElementById('v');
+    var ac = new (window.AudioContext || window.webkitAudioContext)();
+    var dest = ac.createMediaStreamDestination();
+    var buf = await ac.decodeAudioData(await c.blob.arrayBuffer());
+    var src = ac.createBufferSource();
+    src.buffer = buf; src.connect(dest); src.connect(ac.destination);
+    if (hasVid) { cv.width = v.videoWidth || 720; cv.height = v.videoHeight || 1280; }
+    var cs = cv.captureStream(30);
+    var ms = new MediaStream([].concat(cs.getVideoTracks(), dest.stream.getAudioTracks()));
+    var mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
+    var vr = new MediaRecorder(ms, { mimeType: mime }), vc = [];
+    vr.ondataavailable = function(e) { if (e.data && e.data.size > 0) vc.push(e.data); };
+    vr.onstop = function() {
+      var u = URL.createObjectURL(new Blob(vc, { type: mime }));
+      var ext = mime.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+      document.getElementById('out').innerHTML = '<video controls playsinline src="' + u + '" style="width:100%;border-radius:8px;margin-top:8px;"></video>' +
+        '<a href="' + u + '" download="video.' + ext + '" style="display:block;background:#16a34a;color:#fff;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">⬇️ ดาวน์โหลดคลิปวิดีโอ</a>';
+      document.getElementById('mmsg').innerText = '✅ รวมคลิปเสร็จแล้ว!';
+    };
+    vr.start(100); src.start(0);
+    var dur = buf.duration || 5, st = performance.now();
+    if (hasVid) { v.currentTime = 0; v.muted = true; await v.play().catch(function(){}); }
+    (function loop(now) {
+      var el = (now - st) / 1000;
+      if (hasVid) ctx.drawImage(v, 0, 0, cv.width, cv.height);
+      else {
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('🎬 คลิป 9:16 (' + el.toFixed(1) + 's)', cv.width / 2, cv.height / 2);
+      }
+      if (el < dur) requestAnimationFrame(loop);
+      else { if (hasVid) v.pause(); try { src.stop(); } catch(e){} vr.stop(); }
+    })(performance.now());
+  } catch (e) { alert('ผิดพลาด: ' + e.message); }
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(document.getElementById('code').innerText);
+  alert('✅ คัดลอกโค้ดสำหรับ Google Colab แล้ว!');
+}
+</script>
 </head>
-<body>
+<body style="margin:0;font-family:sans-serif;background:#f1f5f9;padding:12px;">
+  <div style="max-width:560px;margin:0 auto;">
+    <div style="background:#2563eb;color:#fff;padding:14px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <b>🎙️ สตูดิโอพากย์เสียง (V2)</b>
+      <button onclick="alert('กดปุ่มจุด 3 จุดมุมขวาบนของ Chrome > เลือก เพิ่มลงในหน้าจอโฮม')" style="background:#16a34a;color:#fff;border:none;padding:6px 10px;border-radius:99px;font-weight:bold;">📲 ติดตั้งแอป</button>
+    </div>
 
-  <div class="header">
-    <h1>🎙️ สตูดิโอพากย์เสียงส่วนตัว</h1>
-    <button type="button" class="install-btn" onclick="showInstallHelp()">📲 วิธีติดตั้งแอป</button>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;">
+      <button id="b1" onclick="tab(1)" style="padding:10px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;">1. อัดเสียง</button>
+      <button id="b2" onclick="tab(2)" style="padding:10px;border:none;border-radius:8px;background:#e2e8f0;color:#0f172a;font-weight:bold;">2. รวมคลิป</button>
+      <button id="b3" onclick="tab(3)" style="padding:10px;border:none;border-radius:8px;background:#e2e8f0;color:#0f172a;font-weight:bold;">3. โคลน AI</button>
+    </div>
+
+    <div id="p1" style="background:#fff;padding:14px;border-radius:12px;">
+      <b>พิมพ์บทพากย์สำหรับอ่านตาม:</b>
+      <textarea id="txt" style="width:100%;height:80px;margin:8px 0;padding:8px;border-radius:8px;border:1px solid #cbd5e1;font-size:16px;">สวัสดีครับทุกคน วันนี้พามาชมเรื่องราวสุดพิเศษ ติดตามกันได้เลยครับ</textarea>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button onclick="speak()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#e2e8f0;font-weight:bold;">🔊 ฟังเสียงอ่าน</button>
+        <button onclick="stopSpeak()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#e2e8f0;font-weight:bold;">⏹️ หยุดฟัง</button>
+      </div>
+      <div style="background:#f8fafc;border:2px dashed #94a3b8;padding:12px;border-radius:10px;text-align:center;margin-bottom:10px;">
+        <div id="msg" style="font-weight:bold;margin-bottom:6px;">พร้อมบันทึกเสียงจากไมค์</div>
+        <div id="tm" style="font-size:22px;font-weight:bold;color:#dc2626;margin-bottom:8px;">0.0 วินาที</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="recStart()" style="flex:1;padding:12px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;">🎙️ เริ่มอัดเสียงไมค์</button>
+          <button onclick="recStop()" style="flex:1;padding:12px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-weight:bold;">⏹️ หยุดอัด</button>
+        </div>
+      </div>
+      <b>หรือเลือกไฟล์เสียงในเครื่อง:</b>
+      <input type="file" accept="audio/*" onchange="upAud(this)" style="width:100%;margin-top:6px;">
+      <div id="list" style="margin-top:12px;"></div>
+    </div>
+
+    <div id="p2" style="display:none;background:#fff;padding:14px;border-radius:12px;">
+      <b>1. เลือกคลิปวิดีโอ:</b>
+      <input type="file" accept="video/*" onchange="upVid(this)" style="width:100%;margin:6px 0 12px;">
+      <b>2. เลือกเสียงพากย์ของคุณ:</b>
+      <select id="sel" style="width:100%;padding:10px;margin:6px 0 12px;border-radius:8px;"><option value="">-- อัดเสียงในแท็บ 1 ก่อนครับ --</option></select>
+      <button onclick="merge()" style="width:100%;padding:12px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-weight:bold;">🎬 รวมเสียงใส่คลิป & ดาวน์โหลด</button>
+      <div id="mmsg" style="margin-top:8px;font-weight:bold;color:#2563eb;"></div>
+      <canvas id="cv" width="720" height="1280" style="width:100%;max-height:260px;background:#000;border-radius:8px;margin-top:10px;object-fit:contain;"></canvas>
+      <video id="v" playsinline crossorigin="anonymous" style="display:none;"></video>
+      <div id="out"></div>
+    </div>
+
+    <div id="p3" style="display:none;background:#fff;padding:14px;border-radius:12px;">
+      <b>โค้ดโคลนเสียงภาษาไทยฟรี (F5-TTS บน Google Colab):</b>
+      <pre id="code" style="background:#0f172a;color:#38bdf8;padding:10px;border-radius:8px;font-size:11px;white-space:pre-wrap;margin:8px 0;">!pip install -q f5-tts-th gradio soundfile
+import gradio as gr, soundfile as sf
+from f5_tts_th.tts import TTS
+tts = TTS(model="v1")
+def run(a, r, g):
+    w = tts.infer(ref_audio=a, ref_text=r, gen_text=g)
+    sf.write("out.wav", w, 24000)
+    return "out.wav"
+gr.Interface(fn=run, inputs=[gr.Audio(type="filepath"), "text", "text"], outputs="audio").launch(share=True)</pre>
+      <button onclick="copyCode()" style="width:100%;padding:12px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;">📋 คัดลอกโค้ด Colab</button>
+    </div>
   </div>
-
-  <div class="container">
-    <div id="js-status" class="ready-bar">⏳ กำลังโหลดระบบ... (หากข้อความนี้ไม่เปลี่ยน แปลว่าก๊อปโค้ดมาไม่ครบ)</div>
-
-    <div class="tabs">
-      <button type="button" class="tab-btn active" id="tbtn-1" onclick="switchTab(1)">1. อัดเสียง</button>
-      <button type="button" class="tab-btn" id="tbtn-2" onclick="switchTab(2)">2. รวมใส่คลิป</button>
-      <button type="button" class="tab-btn" id="tbtn-3" onclick="switchTab(3)">3. โคลน AI ฟรี</button>
-    </div>
-
-    <!-- แท็บ 1 -->
-    <div id="panel-1" class="panel active">
-      <div class="card">
-        <h2>1. พิมพ์บทพากย์ & กดอัดเสียงของคุณ</h2>
-        <p class="desc">พิมพ์บทด้านล่าง ตัวหนังสือใหญ่จะแสดงในกล่องสีดำให้อ่านตามง่ายๆ</p>
-        <textarea id="script-text" oninput="syncText()">สวัสดีครับทุกคน วันนี้พามาดูเรื่องราวสุดพิเศษที่คุณอาจไม่เคยรู้มาก่อน ติดตามชมไปพร้อมกันเลยครับ</textarea>
-
-        <div class="btn-row" style="margin-bottom:10px;">
-          <button type="button" class="btn btn-gray" onclick="speakText()">🔊 ฟังเสียง AI อ่านบทนี้</button>
-          <button type="button" class="btn btn-gray" onclick="stopSpeak()">⏹️ หยุดฟัง</button>
-        </div>
-
-        <div class="teleprompter" id="tele-box">สวัสดีครับทุกคน วันนี้พามาดูเรื่องราวสุดพิเศษที่คุณอาจไม่เคยรู้มาก่อน ติดตามชมไปพร้อมกันเลยครับ</div>
-
-        <div class="rec-box">
-          <div id="rec-label" style="font-weight:bold;font-size:14px;">แตะปุ่มสีน้ำเงินเพื่อเริ่มอัดเสียงพากย์</div>
-          <div class="timer" id="rec-timer">0.0 วินาที</div>
-          <div class="btn-row">
-            <button type="button" class="btn btn-blue" id="btn-start" onclick="startRecord()">🎙️ เริ่มอัดเสียงไมค์</button>
-            <button type="button" class="btn btn-red" id="btn-stop" onclick="stopRecord()">⏹️ หยุดอัดและบันทึก</button>
-          </div>
-        </div>
-
-        <label style="font-size:13px;font-weight:bold;">หรือเลือกไฟล์เสียงที่มีในมือถือ (.mp3, .wav, .m4a)</label>
-        <input type="file" id="file-audio" accept="audio/*" onchange="uploadAudio(this)">
-      </div>
-
-      <div class="card">
-        <h2>คลังเสียงพากย์ของคุณ</h2>
-        <div id="audio-list">
-          <p class="desc">ยังไม่มีไฟล์เสียง กดอัดเสียงด้านบนได้เลยครับ</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- แท็บ 2 -->
-    <div id="panel-2" class="panel">
-      <div class="card">
-        <h2>2. รวมเสียงพากย์ใส่คลิปวิดีโอ (9:16)</h2>
-        <p class="desc">เลือกคลิปวิดีโอและไฟล์เสียงของคุณเพื่อรวมเป็นไฟล์เดียวกัน</p>
-
-        <label style="font-size:13px;font-weight:bold;">1. เลือกคลิปวิดีโอจากมือถือ (ถ้าไม่เลือกจะใช้ภาพจำลอง)</label>
-        <input type="file" id="file-video" accept="video/*" onchange="uploadVideo(this)">
-
-        <label style="font-size:13px;font-weight:bold;">2. เลือกเสียงพากย์ของคุณ</label>
-        <select id="select-audio">
-          <option value="">-- กรุณาอัดเสียงในแท็บที่ 1 ก่อนครับ --</option>
-        </select>
-
-        <button type="button" class="btn btn-green btn-full" onclick="mergeVideoAudio()">🎬 รวมเสียงใส่คลิป & สร้างปุ่มดาวน์โหลด</button>
-        <div id="merge-status" style="margin-top:10px;font-weight:bold;font-size:13px;color:#1d4ed8;"></div>
-      </div>
-
-      <div class="card">
-        <h2>หน้าจอพรีวิวและดาวน์โหลดคลิป</h2>
-        <div class="video-stage">
-          <canvas id="vid-canvas" width="720" height="1280"></canvas>
-      
+</body>
+</html>
