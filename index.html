@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>สตูดิโอพากย์เสียง</title>
+<title>สตูดิโอพากย์เสียง AI (V3)</title>
 <script>
 var clips = [], rec = null, chunks = [], tId = null, t0 = 0, stream = null, hasVid = false;
 
@@ -16,66 +16,99 @@ function tab(n) {
   }
 }
 
-function speak() {
-  var t = document.getElementById('txt').value;
-  if (!window.speechSynthesis) return alert('เครื่องนี้ไม่รองรับเสียงอ่านอัตโนมัติ กรุณากดปุ่มอัดเสียงไมค์แทนครับ');
-  window.speechSynthesis.cancel();
-  var u = new SpeechSynthesisUtterance(t);
-  u.lang = 'th-TH';
-  window.speechSynthesis.speak(u);
-  document.getElementById('msg').innerText = '🔊 กำลังอ่านบทพากย์...';
-}
-
-function stopSpeak() {
-  if (window.speechSynthesis) window.speechSynthesis.cancel();
-  document.getElementById('msg').innerText = '⏹️ หยุดอ่านแล้ว';
-}
-
 function addClip(name, blob) {
   var url = URL.createObjectURL(blob);
   var id = 'c' + Date.now();
   clips.unshift({ id: id, name: name, url: url, blob: blob });
-  var sel = document.getElementById('sel');
-  sel.innerHTML = clips.map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('');
+  var opts = clips.map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('');
+  document.getElementById('sel').innerHTML = opts;
+  document.getElementById('ref-sel').innerHTML = opts;
   document.getElementById('list').innerHTML = clips.map(function(c) {
     return '<div style="padding:10px;border:1px solid #cbd5e1;border-radius:8px;margin-top:8px;background:#f8fafc;">' +
-      '<b>' + c.name + '</b> <a href="' + c.url + '" download="' + c.name + '.webm" style="float:right;color:#2563eb;font-weight:bold;">⬇️ ดาวน์โหลด</a>' +
+      '<b>' + c.name + '</b> <a href="' + c.url + '" download="' + c.name + '.wav" style="float:right;color:#2563eb;font-weight:bold;">⬇️ ดาวน์โหลด</a>' +
       '<audio controls src="' + c.url + '" style="width:100%;margin-top:8px;"></audio></div>';
   }).join('');
 }
 
 async function recStart() {
   try {
-    document.getElementById('msg').innerText = '⏳ กำลังขอเปิดไมค์...';
+    document.getElementById('msg').innerText = '⏳ กำลังเปิดไมค์...';
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     chunks = [];
     rec = new MediaRecorder(stream);
     rec.ondataavailable = function(e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
     rec.onstop = function() {
-      addClip('เสียงพากย์ #' + (clips.length + 1), new Blob(chunks, { type: rec.mimeType || 'audio/webm' }));
+      addClip('เสียงต้นฉบับ #' + (clips.length + 1), new Blob(chunks, { type: rec.mimeType || 'audio/webm' }));
       stream.getTracks().forEach(function(t) { t.stop(); });
       clearInterval(tId);
-      document.getElementById('msg').innerText = '✅ บันทึกเสียงสำเร็จ! ดูที่คลังด้านล่างได้เลย';
+      document.getElementById('msg').innerText = '✅ บันทึกสำเร็จ! กดไปที่แท็บ "2. โคลน AI" ได้เลย';
     };
     rec.start(100);
     t0 = Date.now();
-    document.getElementById('msg').innerText = '🔴 กำลังอัดเสียง... พูดใส่ไมค์ได้เลย';
+    document.getElementById('msg').innerText = '🔴 กำลังอัดเสียง... อ่านประโยคด้านบนได้เลยครับ';
     tId = setInterval(function() {
       document.getElementById('tm').innerText = ((Date.now() - t0) / 1000).toFixed(1) + ' วินาที';
     }, 100);
   } catch (e) {
-    alert('เปิดไมค์ไม่ได้: กรุณากดอนุญาต (Allow) การใช้ไมโครโฟนบน Chrome ครับ');
+    alert('กรุณากดอนุญาต (Allow) การใช้ไมโครโฟนบนเบราว์เซอร์ครับ');
   }
 }
 
 function recStop() {
   if (rec && rec.state !== 'inactive') rec.stop();
-  else alert('กรุณากดปุ่ม "เริ่มอัดเสียงไมค์" ก่อนครับ');
+  else alert('กดปุ่มสีน้ำเงิน "เริ่มอัดเสียงไมค์" ก่อนครับ');
 }
 
 function upAud(el) {
   var f = el.files[0];
-  if (f) { addClip(f.name, f); alert('เพิ่มไฟล์เสียงแล้ว!'); }
+  if (f) { addClip(f.name, f); alert('✅ เพิ่มไฟล์เสียงเรียบร้อย!'); }
+}
+
+async function cloneVoiceAI() {
+  var refId = document.getElementById('ref-sel').value;
+  var refClip = clips.find(function(x) { return x.id === refId; });
+  if (!refClip) return alert('กรุณาอัดเสียงต้นฉบับของคุณในแท็บที่ 1 ก่อนครับ!');
+
+  var refText = document.getElementById('ref-txt').value.trim();
+  var genText = document.getElementById('gen-txt').value.trim();
+  if (!genText) return alert('กรุณาพิมพ์บทพากย์ที่ต้องการให้ AI พูดครับ');
+
+  var st = document.getElementById('ai-msg');
+  var btn = document.getElementById('btn-ai');
+  btn.disabled = true;
+  st.innerText = '⏳ กำลังส่งเสียงของคุณไปให้ AI โคลนเสียง (ใช้เวลาประมาณ 15-40 วินาที)...';
+
+  try {
+    var mod = await import('https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js');
+    var spaceName = document.getElementById('space-id').value.trim() || 'VIZINTZOR/F5-TTS-THAI';
+    var app = await mod.Client.connect(spaceName);
+
+    var info = await app.view_api();
+    var ep = '/predict';
+    if (info && info.named_endpoints) {
+      var keys = Object.keys(info.named_endpoints);
+      if (keys.length > 0) ep = keys[0];
+    }
+
+    var res = await app.predict(ep, [refClip.blob, refText, genText]);
+    var out = res && res.data && res.data[0];
+    var audioUrl = out && (out.url || out.path || (typeof out === 'string' ? out : null));
+    if (!audioUrl) throw new Error('ไม่ได้รับไฟล์เสียงกลับมา');
+
+    var audioRes = await fetch(audioUrl);
+    var aiBlob = await audioRes.blob();
+    addClip('🤖 เสียง AI โคลน #' + (clips.length + 1), aiBlob);
+
+    document.getElementById('ai-out').innerHTML =
+      '<div style="padding:12px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;margin-top:10px;">' +
+      '<b>🎉 เสียงพากย์ AI ของคุณเสร็จแล้ว!</b>' +
+      '<audio controls autoplay src="' + URL.createObjectURL(aiBlob) + '" style="width:100%;margin-top:8px;"></audio></div>';
+    st.innerText = '✅ โคลนเสียงสำเร็จ! นำไปรวมใส่คลิปในแท็บที่ 3 ได้เลยครับ';
+  } catch (err) {
+    st.innerText = '⚠️ เซิร์ฟเวอร์ AI ฟรีกำลังคิวเต็มหรือปิดปรับปรุง (' + err.message + ') กรุณากดลองอีกครั้งในอีกสักครู่ครับ';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function upVid(el) {
@@ -85,13 +118,13 @@ function upVid(el) {
   var v = document.getElementById('v');
   v.src = URL.createObjectURL(f);
   v.load();
-  alert('โหลดคลิปวิดีโอเรียบร้อย!');
+  alert('✅ โหลดคลิปวิดีโอเรียบร้อย!');
 }
 
 async function merge() {
   var id = document.getElementById('sel').value;
   var c = clips.find(function(x) { return x.id === id; });
-  if (!c) return alert('กรุณาอัดเสียงหรือเลือกไฟล์เสียงในแท็บที่ 1 ก่อนครับ!');
+  if (!c) return alert('กรุณาเลือกไฟล์เสียงก่อนครับ!');
   document.getElementById('mmsg').innerText = '⏳ กำลังรวมเสียงใส่คลิป รอสักครู่...';
   try {
     var cv = document.getElementById('cv'), ctx = cv.getContext('2d'), v = document.getElementById('v');
@@ -111,7 +144,7 @@ async function merge() {
       var ext = mime.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
       document.getElementById('out').innerHTML = '<video controls playsinline src="' + u + '" style="width:100%;border-radius:8px;margin-top:8px;"></video>' +
         '<a href="' + u + '" download="video.' + ext + '" style="display:block;background:#16a34a;color:#fff;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:8px;">⬇️ ดาวน์โหลดคลิปวิดีโอ</a>';
-      document.getElementById('mmsg').innerText = '✅ รวมคลิปเสร็จแล้ว!';
+      document.getElementById('mmsg').innerText = '✅ รวมคลิปเสร็จสมบูรณ์!';
     };
     vr.start(100); src.start(0);
     var dur = buf.duration || 5, st = performance.now();
@@ -129,71 +162,60 @@ async function merge() {
     })(performance.now());
   } catch (e) { alert('ผิดพลาด: ' + e.message); }
 }
-
-function copyCode() {
-  navigator.clipboard.writeText(document.getElementById('code').innerText);
-  alert('✅ คัดลอกโค้ดสำหรับ Google Colab แล้ว!');
-}
 </script>
 </head>
 <body style="margin:0;font-family:sans-serif;background:#f1f5f9;padding:12px;">
   <div style="max-width:560px;margin:0 auto;">
     <div style="background:#2563eb;color:#fff;padding:14px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <b>🎙️ สตูดิโอพากย์เสียง (V2)</b>
-      <button onclick="alert('กดปุ่มจุด 3 จุดมุมขวาบนของ Chrome > เลือก เพิ่มลงในหน้าจอโฮม')" style="background:#16a34a;color:#fff;border:none;padding:6px 10px;border-radius:99px;font-weight:bold;">📲 ติดตั้งแอป</button>
+      <b>🎙️ สตูดิโอพากย์เสียง AI (V3)</b>
+      <button onclick="alert('กดจุด 3 จุดมุมขวาบนของ Chrome > เลือก เพิ่มลงในหน้าจอโฮม')" style="background:#16a34a;color:#fff;border:none;padding:6px 10px;border-radius:99px;font-weight:bold;">📲 ติดตั้งแอป</button>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;">
-      <button id="b1" onclick="tab(1)" style="padding:10px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;">1. อัดเสียง</button>
-      <button id="b2" onclick="tab(2)" style="padding:10px;border:none;border-radius:8px;background:#e2e8f0;color:#0f172a;font-weight:bold;">2. รวมคลิป</button>
-      <button id="b3" onclick="tab(3)" style="padding:10px;border:none;border-radius:8px;background:#e2e8f0;color:#0f172a;font-weight:bold;">3. โคลน AI</button>
+      <button id="b1" onclick="tab(1)" style="padding:10px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;">1. อัดต้นฉบับ</button>
+      <button id="b2" onclick="tab(2)" style="padding:10px;border:none;border-radius:8px;background:#e2e8f0;color:#0f172a;font-weight:bold;">2. โคลน AI</button>
+      <button id="b3" onclick="tab(3)" style="padding:10px;border:none;border-radius:8px;background:#e2e8f0;color:#0f172a;font-weight:bold;">3. รวมคลิป</button>
     </div>
 
+    <!-- แท็บ 1: อัดเสียงต้นฉบับ -->
     <div id="p1" style="background:#fff;padding:14px;border-radius:12px;">
-      <b>พิมพ์บทพากย์สำหรับอ่านตาม:</b>
-      <textarea id="txt" style="width:100%;height:80px;margin:8px 0;padding:8px;border-radius:8px;border:1px solid #cbd5e1;font-size:16px;">สวัสดีครับทุกคน วันนี้พามาชมเรื่องราวสุดพิเศษ ติดตามกันได้เลยครับ</textarea>
-      <div style="display:flex;gap:6px;margin-bottom:10px;">
-        <button onclick="speak()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#e2e8f0;font-weight:bold;">🔊 ฟังเสียงอ่าน</button>
-        <button onclick="stopSpeak()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#e2e8f0;font-weight:bold;">⏹️ หยุดฟัง</button>
+      <b>1. อ่านประโยคต้นฉบับนี้เพื่อเก็บเสียงของคุณ (10 วินาที):</b>
+      <div style="background:#0f172a;color:#38bdf8;padding:12px;border-radius:8px;margin:8px 0;font-size:16px;font-weight:bold;">
+        "สวัสดีครับ วันนี้ผมมาบันทึกเสียงต้นฉบับภาษาไทย เพื่อให้เอไอนำไปสร้างเสียงพากย์ครับ"
       </div>
       <div style="background:#f8fafc;border:2px dashed #94a3b8;padding:12px;border-radius:10px;text-align:center;margin-bottom:10px;">
-        <div id="msg" style="font-weight:bold;margin-bottom:6px;">พร้อมบันทึกเสียงจากไมค์</div>
+        <div id="msg" style="font-weight:bold;margin-bottom:6px;">พร้อมบันทึกเสียงต้นฉบับ</div>
         <div id="tm" style="font-size:22px;font-weight:bold;color:#dc2626;margin-bottom:8px;">0.0 วินาที</div>
         <div style="display:flex;gap:8px;">
           <button onclick="recStart()" style="flex:1;padding:12px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;">🎙️ เริ่มอัดเสียงไมค์</button>
           <button onclick="recStop()" style="flex:1;padding:12px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-weight:bold;">⏹️ หยุดอัด</button>
         </div>
       </div>
-      <b>หรือเลือกไฟล์เสียงในเครื่อง:</b>
+      <b>หรืออัปโหลดไฟล์เสียงของคุณที่มีในเครื่อง:</b>
       <input type="file" accept="audio/*" onchange="upAud(this)" style="width:100%;margin-top:6px;">
       <div id="list" style="margin-top:12px;"></div>
     </div>
 
+    <!-- แท็บ 2: โคลนเสียง AI ในแอปทันที -->
     <div id="p2" style="display:none;background:#fff;padding:14px;border-radius:12px;">
-      <b>1. เลือกคลิปวิดีโอ:</b>
-      <input type="file" accept="video/*" onchange="upVid(this)" style="width:100%;margin:6px 0 12px;">
-      <b>2. เลือกเสียงพากย์ของคุณ:</b>
-      <select id="sel" style="width:100%;padding:10px;margin:6px 0 12px;border-radius:8px;"><option value="">-- อัดเสียงในแท็บ 1 ก่อนครับ --</option></select>
-      <button onclick="merge()" style="width:100%;padding:12px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-weight:bold;">🎬 รวมเสียงใส่คลิป & ดาวน์โหลด</button>
-      <div id="mmsg" style="margin-top:8px;font-weight:bold;color:#2563eb;"></div>
-      <canvas id="cv" width="720" height="1280" style="width:100%;max-height:260px;background:#000;border-radius:8px;margin-top:10px;object-fit:contain;"></canvas>
-      <video id="v" playsinline crossorigin="anonymous" style="display:none;"></video>
-      <div id="out"></div>
+      <b>1. เลือกเสียงต้นฉบับของคุณ:</b>
+      <select id="ref-sel" style="width:100%;padding:10px;margin:6px 0 10px;border-radius:8px;"><option value="">-- กรุณาอัดเสียงในแท็บที่ 1 ก่อนครับ --</option></select>
+
+      <b>2. ประโยคที่คุณพูดในเสียงต้นฉบับ:</b>
+      <input id="ref-txt" type="text" value="สวัสดีครับ วันนี้ผมมาบันทึกเสียงต้นฉบับภาษาไทย เพื่อให้เอไอนำไปสร้างเสียงพากย์ครับ" style="width:100%;padding:10px;margin:6px 0 10px;border-radius:8px;border:1px solid #cbd5e1;">
+
+      <b>3. พิมพ์บทพากย์ใหม่ที่อยากให้ AI พูดเป็นเสียงคุณ:</b>
+      <textarea id="gen-txt" style="width:100%;height:90px;padding:10px;margin:6px 0 10px;border-radius:8px;border:1px solid #cbd5e1;font-size:15px;">รู้หรือไม่ครับว่า แมวไทยโบราณเป็นสัตว์มงคลที่มีความฉลาดและซื่อสัตย์ต่อเจ้าของอย่างมาก</textarea>
+
+      <input id="space-id" type="hidden" value="VIZINTZOR/F5-TTS-THAI">
+      <button id="btn-ai" onclick="cloneVoiceAI()" style="width:100%;padding:14px;border:none;border-radius:8px;background:#7c3aed;color:#fff;font-weight:bold;font-size:15px;">✨ สั่ง AI โคลนเสียงพูดตามบทนี้ทันที</button>
+      <div id="ai-msg" style="margin-top:10px;font-weight:bold;color:#4f46e5;font-size:13px;"></div>
+      <div id="ai-out"></div>
     </div>
 
+    <!-- แท็บ 3: รวมเสียงใส่คลิป -->
     <div id="p3" style="display:none;background:#fff;padding:14px;border-radius:12px;">
-      <b>โค้ดโคลนเสียงภาษาไทยฟรี (F5-TTS บน Google Colab):</b>
-      <pre id="code" style="background:#0f172a;color:#38bdf8;padding:10px;border-radius:8px;font-size:11px;white-space:pre-wrap;margin:8px 0;">!pip install -q f5-tts-th gradio soundfile
-import gradio as gr, soundfile as sf
-from f5_tts_th.tts import TTS
-tts = TTS(model="v1")
-def run(a, r, g):
-    w = tts.infer(ref_audio=a, ref_text=r, gen_text=g)
-    sf.write("out.wav", w, 24000)
-    return "out.wav"
-gr.Interface(fn=run, inputs=[gr.Audio(type="filepath"), "text", "text"], outputs="audio").launch(share=True)</pre>
-      <button onclick="copyCode()" style="width:100%;padding:12px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:bold;">📋 คัดลอกโค้ด Colab</button>
-    </div>
-  </div>
-</body>
-</html>
+      <b>1. เลือกคลิปวิดีโอ:</b>
+      <input type="file" accept="video/*" onchange="upVid(this)" style="width:100%;margin:6px 0 12px;">
+      <b>2. เลือกเสียงพากย์ (เสียง AI หรือเสียงอัดเอง):</b>
+      <select id="sel" style="width
